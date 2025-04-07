@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-w1^8#gsk4v@%yco-9fi+@(j4%0@lwx7p3f$d##8$bb^)mz*68v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.18','192.168.1.20','192.168.0.120','192.168.1.7']
+ALLOWED_HOSTS = ['127.0.0.1','192.168.1.9']
 
 
 # Application definition
@@ -183,7 +183,7 @@ EMAIL_USE_TLS=True
 
 EMAIL_HOST_USER='benahmedyasmin@gmail.com'
 
-EMAIL_HOST_PASSWORD='fnyxlbkzhvuxdjma'
+EMAIL_HOST_PASSWORD='gdlyrjkgwraaqfml'
 
 
 

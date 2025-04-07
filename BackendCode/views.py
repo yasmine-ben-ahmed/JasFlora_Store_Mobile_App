@@ -15,7 +15,7 @@ from rest_framework.permissions import AllowAny
 import json
 import random
 
-from .models import Client, Flower, Order
+from .models import Client, Flower, Order, OrderItem
 from BackendCode.serializer import GroupSerializer, UserSerializer, ClientSerializer, FlowerSerializer, CategoriesSerializer, OrderSerializer
 
 
@@ -296,27 +296,86 @@ class FlowerListView(APIView):
                 {"error": "An error occurred while fetching the data.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
 
+from django.core.mail import send_mail, BadHeaderError
 
 class OrderCreateView(APIView):
     permission_classes = []  # No authentication required
 
     def post(self, request, *args, **kwargs):
         try:
-            # Deserialize request data
-            serializer = OrderSerializer(data=request.data)
-            
-            if serializer.is_valid():
-                order = serializer.save()  # Save the order
-                return Response({"message": "Order Created Successfully", "order_id": order.id}, status=status.HTTP_201_CREATED)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            data = request.data
+
+            # Étape 1: Créer la commande
+            order = Order.objects.create(
+                customer_name=data.get("customer_name", "Anonymous"),
+                email=data.get("email"),
+                phone=data.get("phone"),
+                address=data.get("address"),
+                total_price=data.get("total", 0)
+            )
+
+            # Étape 2: Créer les articles de commande
+            order_items = data.get("order_items", [])
+            for item in order_items:
+                flower_id = item.get("flower_id")
+                quantity = item.get("quantity", 1)
+                price = item.get("price", 0)
+
+                try:
+                    flower = Flower.objects.get(id=flower_id)
+                    OrderItem.objects.create(
+                        order=order,
+                        flower=flower,
+                        quantity=quantity,
+                        price=price
+                    )
+                except Flower.DoesNotExist:
+                    return Response({"error": f"Flower with ID {flower_id} not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Étape 3: Envoyer l'email de notification
+           # self.send_order_email(order)
+
+            # Étape 4: Sérialiser et retourner la réponse
+            serializer = OrderSerializer(order)
+            return Response({"message": "Order Created Successfully", "order": serializer.data}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response(
                 {"error": "An error occurred while creating the order.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def send_order_email(self, order):
+        """Send email notification to the shop owner when an order is placed."""
+        subject = "New Order Received!"
+        message = (
+            f"Hello, you have a new order!\n\n"
+            f"Order ID: {order.id}\n"
+            f"Customer: {order.customer_name}\n"
+            f"Email: {order.email or 'No Email Provided'}\n"
+            f"Phone: {order.phone or 'No Phone Provided'}\n"
+            f"Address: {order.address or 'No Address Provided'}\n"
+            f"Total Price: ${order.total_price:.2f}\n\n"
+            f"Please check the admin panel for more details."
+        )
+
+        try:
+            send_mail(
+                subject,
+                message,
+                "benahmedyasmin@gmail.com",  # Must match EMAIL_HOST_USER
+                ["benahmedyasmin@gmail.com"],  # Replace with your admin email
+                fail_silently=False,  
+            )
+        except BadHeaderError:
+            print("Invalid email header detected.")
+        except Exception as e:
+            print(f"Email sending failed: {str(e)}")
+
+
+
 
 @api_view(['GET'])
 def get_orders(request):

@@ -1,6 +1,6 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import serializers
-from .models import Client, Flower, Category, Order
+from .models import Client, Flower, Category, Order, OrderItem
 
 from django.contrib.auth.hashers import make_password
 
@@ -36,7 +36,15 @@ class CategoriesSerializer(serializers.ModelSerializer):
         model = Category
         fields = ["id", "name"]
 
+
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ["id", "address","phone","email"]
+        fields = ["id", "customer_name", "address", "phone", "email", "total_price"]
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    flower = FlowerSerializer(read_only=True)  # Include full flower details
+
+    class Meta:
+        model = OrderItem
+        fields = ['flower', 'quantity', 'price']
